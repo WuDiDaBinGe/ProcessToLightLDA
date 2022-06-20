@@ -7,6 +7,7 @@ from multiprocessing import Pool
 from pathlib import Path
 from tqdm import tqdm
 # import jieba.posseg as psg
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS as sklearn_stop_words
 
 from config import NOT_USE_fLAG
 
@@ -146,12 +147,13 @@ def build_vocab_dataset_mp(num_workers, tokenized_url, vocab_url):
     t2 = time.time()
     tm_cost = t2 - t1
     print("Get Vocab time is :{}".format(tm_cost))
-    # 根据单词的次数过滤
+    # 根据单词的次数过滤 单词次数需要大于5
     vocab_all = {k: v for k, v in vocab_all.items() if v > 5}
     # 根据单词出现次数排序
     vocab_all = sorted(vocab_all.items(), key=lambda x: x[0], reverse=True)
     sorted_words = [x[0] for x in vocab_all]
-
+    # TODO：过滤掉停用词
+    # sorted_words = list(set(sorted_words) - set(sklearn_stop_words))
     vocab_file = open(vocab_url, 'w')
     vocab_file.writelines("\n".join(sorted_words))
     vocab_file.close()
@@ -211,15 +213,19 @@ def get_UCI_dataset_single(tokenized_url, uci_url, vocab_url):
 
 
 def pipeline_preprocess_raw(num_worker):
+    # all_docs.txt 路径 未分词的
     raw_data_url = '/home/lcl/LightLDA/military_20g/20g/all_docs.txt'
+    # 分词后的all_docs.txt （英文忽略）
     tokenized_data_url = '/home/lcl/LightLDA/military_20g/20g/all_docs_tokenized.txt'
+    # 得到的词表文件
     vocab_url = '/home/lcl/LightLDA/military_20g/20g/vocab.military20.txt'
+    # 最后转化得到的UCI格式文件
     uci_url = '/home/lcl/LightLDA/military_20g/20g/docword.military20_new.txt'
-    # 得到分词后的数据集
+    # 1. 得到分词后的数据集(英文可忽略)
     # get_tokenized_dataset_mp(num_worker, raw_url=raw_data_url, token_out_url=tokenized_data_url)
-    # 得到词表
+    # 2. 得到词表
     # build_vocab_dataset_mp(num_worker,tokenized_url=tokenized_data_url,vocab_url=vocab_url)
-    # 得到UCI数据格式数据
+    # 3. 得到UCI数据格式数据
     # 6086741
     get_UCI_dataset_single(tokenized_url=tokenized_data_url, uci_url=uci_url, vocab_url=vocab_url)
 

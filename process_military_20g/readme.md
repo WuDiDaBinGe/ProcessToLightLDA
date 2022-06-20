@@ -17,10 +17,16 @@
 
 `clean_merge_all_txt_in_dirs.py` 为该步骤的文件
 
-先读取文件下所有txt路径然后利用多线程处理所有的txt文件
-
-对每一篇文章做了清洗，去除原创、图片记号，网址以及特殊符号，正则如下：
-
+先读取文件下所有txt路径然后利用多线程处理所有的txt文件，在该文件中定义每个文件夹路径如下。
+使用列表存放每个文件夹下的文件路径并使用多进程清洗文件。
+```python
+base_dir = '/home/lcl/LightLDA/military_20g/20g/'
+dir_all_list = [
+    base_dir + '5k', base_dir + '10k', base_dir + '15k', base_dir + '20k', base_dir + '25k', base_dir + '30k',
+    base_dir + '35k', base_dir + 'new'
+]
+```
+在获取了对每一篇文章做了清洗，去除原创、图片记号，网址以及特殊符号，正则如下：
 ```python
 regix_nosiy_seg = [
     # 去除原创图片信息
@@ -32,26 +38,50 @@ regix_nosiy_seg = [
     re.compile('[#$%&*@★、…【】]+')
 ]
 ```
+最终得到了存放所有数据的txt文件`all_docs.txt`，其中每一行为清洗过的文章。
+在清洗合并文件之后我们需要使用`tokrnizer_vocab_uci_mp.py`中`pipeline_preprocess_raw`函数中定义了三步，操作函数，最终将`all_docs.txt`转化为UCI格式。
 
-最终得到了存放所有数据的txt文件`all_docs.txt`
 
-
-
-`tokrnizer_vocab_uci_mp.py`文件中定义了下面的三步的函数
-
+`tokrnizer_vocab_uci_mp.py`文件中定义了下面的三步的函数:
+```python
+def pipeline_preprocess_raw(num_worker):
+    # all_docs.txt 路径 未分词的
+    raw_data_url = '/home/lcl/LightLDA/military_20g/20g/all_docs.txt'
+    # 分词后的all_docs.txt （英文忽略）
+    tokenized_data_url = '/home/lcl/LightLDA/military_20g/20g/all_docs_tokenized.txt'
+    # 得到的词表文件
+    vocab_url = '/home/lcl/LightLDA/military_20g/20g/vocab.military20.txt'
+    # 最后转化得到的UCI格式文件
+    uci_url = '/home/lcl/LightLDA/military_20g/20g/docword.military20_new.txt'
+    # 1. 得到分词后的数据集(英文可忽略)
+    get_tokenized_dataset_mp(num_worker, raw_url=raw_data_url, token_out_url=tokenized_data_url)
+    # 2. 得到词表
+    build_vocab_dataset_mp(num_worker,tokenized_url=tokenized_data_url,vocab_url=vocab_url)
+    # 3. 得到UCI数据格式数据
+    # 6086741
+    get_UCI_dataset_single(tokenized_url=tokenized_data_url, uci_url=uci_url, vocab_url=vocab_url)
+```
+在执行以下三步中的一步时，建议注释掉其他两个函数。
 ##### 2.2分词
 
-使用jieba库对每一行的新闻进行分词，分词后各个单词的token用`\  `+一个空格隔开
-
+使用jieba库对每一行的中文新闻新闻进行分词，分词后各个单词的token用`\  `+一个空格隔开
+若使用英文数据直接使用空格进行分词。需要修改分词的代码。
+```python
+# 1. 得到分词后的数据集(英文可忽略)
+    get_tokenized_dataset_mp(num_worker, raw_url=raw_data_url, token_out_url=tokenized_data_url)
+```
 ##### 2.3 得到词表
 
-遍历分词后的文章，得到词表，并过滤掉出现次数的很少的单词。
+遍历分词后的文章，得到词表，并过滤掉出现次数的很少的单词，以及去掉停用词。
 
-词表文件每一行为一个单词
-
+词表文件vocab.txt每一行为一个单词,行号为单词的ID号。
+```python
+# 2. 得到词表
+    build_vocab_dataset_mp(num_worker,tokenized_url=tokenized_data_url,vocab_url=vocab_url)
+```
 ##### 2.4 转成UCI格式
 
-使用词表文件和分词后的数据集文件，得到UCI格式的数据集
+使用`get_UCI_dataset_single`函数，将词表文件和分词后的数据集文件，得到UCI格式的数据集
 
 UCI格式如下：
 

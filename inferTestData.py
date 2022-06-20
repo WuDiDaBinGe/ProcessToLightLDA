@@ -142,7 +142,7 @@ if __name__ == '__main__':
     docNum, vocab_num = transforLIBSVM()
 
     # libsvm转成LightLDA 的block
-    # libsvmTOBinary(LightLdaBinPath + 'dump_binary', BinaryOutPath)
+    libsvmTOBinary(LightLdaBinPath + 'dump_binary', BinaryOutPath)
     # 推理
     inferByLightLDA(LightLdaBinPath + "infer", BinaryOutPath, vocab_num=vocab_num, topic_num=TopicK, num_blocks=4)
 
